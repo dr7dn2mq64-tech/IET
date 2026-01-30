@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>丧尸逃生 - 全平台版</title>
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIuivt+iHquWKqOivgeWNjiIsCiAgInNob3J0X25hbWUiOiAi6K+36Ieq5Yqo6K+B5Y2OIiwKICAic3RhcnRfdXJsIjogIi8iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMxYTFhMWEiLAogICJ0aGVtZV9jb2xvciI6ICIjZmY0NDQ0IiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sOzxzdmcgeG1sbnM9XCJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Z1wiIHZpZXdCb3g9XCIwIDAgNTEyIDUxMlwiPjxyZWN0IGZpbGw9XCIjZmY0NDQ0XCIgd2lkdGg9XCI1MTJcIiBoZWlnaHQ9XCI1MTJcIi8+PHRleHQgeD1cIjI1NlwiIHk9XCIyNzBcIiBmb250LXNpemU9XCIyNTZcIiBmaWxsPVwibm9uZVwiIHN0cm9rZT1cIiMwMDBcIiBzdHJva2Utd2lkdGg9XCI1MFwiPuivtTwvdGV4dD48L3N2Zz4iLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiCiAgICB9CiAgXQp9Cg==">
+    <style>
+        /* ===== 基础重置与跨平台适配 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d1810 100%);
+            color: #fff;
+            overflow: hidden;
+            overscroll-behavior: none;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            touch-action: none;
+        }
+
+        /* 支持深色模式 */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #0a0a0a 0%, #1d1008 100%);
+            }
+        }
+
+        /* ===== 主容器与布局系统 ===== */
+        #container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 加载画面 - 增强性能 */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+
+        #loadingScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #loadingText {
+            font-size: clamp(20px, 5vw, 32px);
+            color: #ff4444;
+            margin-bottom: 30px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        .loadingBar {
+            width: min(400px, 80vw);
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loadingFill {
+            height: 100%;
+            background: linear-gradient(to right, #ff0000, #ff6666);
+            width: 0%;
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* ===== 状态栏 - 响应式设计 ===== */
+        #statusBar {
+            height: clamp(60px, 10vh, 80px);
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 3px solid #8b0000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 clamp(10px, 2vw, 30px);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        #title {
+            font-size: clamp(20px, 4vw, 32px);
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        #title:hover {
+            text-shadow: 0 0 15px rgba(255, 68, 68, 0.8);
+        }
+
+        #devModeIndicator {
+            position: absolute;
+            top: 5px;
+            left: 10px;
+            background: #00ff00;
+            color: #000;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .stats {
+            display: flex;
+            gap: clamp(10px, 2vw, 25px);
+            flex-wrap: wrap;
+        }
+
+        .statItem {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .statLabel {
+            font-size: clamp(10px, 2vw, 14px);
+            color: #ccc;
+            white-space: nowrap;
+        }
+
+        .statBar {
+            width: clamp(60px, 15vw, 120px);
+            height: 22px;
+            background: #333;
+            border: 2px solid #666;
+            border-radius: 11px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .statFill {
+            height: 100%;
+            transition: width 0.4s ease;
+            border-radius: 9px;
+        }
+
+        #healthFill { background: linear-gradient(to right, #ff0000, #ff6666); }
+        #hungerFill { background: linear-gradient(to right, #ffa500, #ffcc66); }
+        #sanityFill { background: linear-gradient(to right, #9370db, #dda0dd); }
+
+        #timeDisplay {
+            position: absolute;
+            top: 90px;
+            right: clamp(10px, 2vw, 30px);
+            font-size: clamp(12px, 2vw, 18px);
+            color: #ffaa00;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid #ffaa00;
+            white-space: nowrap;
+        }
+
+        /* ===== 三模块主内容区 - 智能布局 ===== */
+        #mainContent {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            padding: clamp(8px, 1.5vw, 15px);
+            gap: clamp(8px, 1.5vw, 15px);
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 768px) {
+            #mainContent {
+                flex-direction: column;
+                padding: 5px;
+                gap: 5px;
+            }
+            
+            /* 移动端优化：垂直堆叠三个模块 */
+            #storyModule { width: 100% !important; order: 1; }
+            #choiceModule { width: 100% !important; order: 3; height: 200px; }
+            #inventoryModule { width: 100% !important; order: 2; height: 150px; }
+            
+            .choiceBtn {
+                min-height: 60px;
+                font-size: 16px;
+                padding: 15px;
+            }
+            
+            .inventorySlot {
+                font-size: 24px;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            #mainContent {
+                gap: 10px;
+            }
+            
+            #choiceModule { width: 300px !important; }
+            #inventoryModule { width: 250px !important; }
+        }
+
+        /* 故事模块 */
+        #storyModule {
+            flex: 1;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #444;
+            border-radius: 15px;
+            padding: clamp(15px, 2vw, 25px);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            backdrop-filter: blur(5px);
+        }
+
+        #storyTitle {
+            font-size: clamp(20px, 3vw, 26px);
+            color: #ff4444;
+            margin-bottom: clamp(15px, 2vw, 20px);
+            text-align: center;
+            text-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+            flex-shrink: 0;
+        }
+
+        #storyContent {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            -webkit-overflow-scrolling: touch; /* iOS滚动优化 */
+        }
+
+        #storyContent::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #storyContent::-webkit-scrollbar-track {
+            background: #222;
+            border-radius: 4px;
+        }
+
+        #storyContent::-webkit-scrollbar-thumb {
+            background: #ff4444;
+            border-radius: 4px;
+        }
+
+        .storyText {
+            font-size: clamp(14px, 2vw, 18px);
+            line-height: 1.8;
+            color: #ddd;
+            margin-bottom: 15px;
+            opacity: 0;
+            animation: fadeInUp 0.6s forwards;
+            word-wrap: break-word;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dialogueBox {
+            background: rgba(139, 0, 0, 0.2);
+            border-left: 4px solid #ff4444;
+            padding: clamp(10px, 1.5vw, 15px);
+            margin: clamp(10px, 1.5vw, 15px) 0;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .speaker {
+            font-size: clamp(12px, 1.8vw, 16px);
+            color: #ff4444;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        /* 选择模块 */
+        #choiceModule {
+            width: clamp(280px, 35vw, 380px);
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #444;
+            border-radius: 15px;
+            padding: clamp(15px, 2vw, 25px);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            backdrop-filter: blur(5px);
+        }
+
+        #choiceTitle {
+            font-size: clamp(18px, 2.5vw, 24px);
+            color: #ffaa00;
+            margin-bottom: clamp(15px, 2vw, 20px);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        #choiceList {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.5vw, 15px);
+            padding-right: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #choiceList::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .choiceBtn {
+            padding: clamp(12px, 1.5vw, 20px);
+            font-size: clamp(14px, 2vw, 18px);
+            background: linear-gradient(135deg, #4d0000, #2a0000);
+            border: 2px solid #ff4444;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            min-height: clamp(50px, 8vh, 70px);
+            display: flex;
+            align-items: center;
+            line-height: 1.4;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .choiceBtn:hover {
+            background: linear-gradient(135deg, #8b0000, #4d0000);
+            transform: translateX(8px);
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+        }
+
+        .choiceBtn:active {
+            transform: translateX(4px) scale(0.98);
+        }
+
+        .choiceBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 背包模块 */
+        #inventoryModule {
+            width: clamp(250px, 30vw, 340px);
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #444;
+            border-radius: 15px;
+            padding: clamp(15px, 2vw, 25px);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            backdrop-filter: blur(5px);
+        }
+
+        #inventoryTitle {
+            font-size: clamp(16px, 2.5vw, 24px);
+            color: #44ff44;
+            margin-bottom: clamp(15px, 2vw, 20px);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        #inventoryGrid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(8px, 1.5vw, 12px);
+            margin-bottom: clamp(15px, 2vw, 20px);
+            flex-shrink: 0;
+        }
+
+        .inventorySlot {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #666;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: clamp(20px, 3vw, 32px);
+            position: relative;
+            touch-action: manipulation;
+        }
+
+        .inventorySlot:hover {
+            border-color: #44ff44;
+            background: rgba(68, 255, 68, 0.2);
+            transform: scale(1.05);
+        }
+
+        .inventorySlot.hasItem {
+            background: linear-gradient(135deg, #333, #555);
+            border-color: #888;
+        }
+
+        .itemCount {
+            position: absolute;
+            bottom: 2px;
+            right: 6px;
+            font-size: clamp(10px, 1.5vw, 12px);
+            color: #fff;
+            background: rgba(0,0,0,0.7);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        #inventoryInfo {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: clamp(10px, 1.5vw, 15px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #itemDetails {
+            font-size: clamp(12px, 1.8vw, 16px);
+            line-height: 1.6;
+        }
+
+        #itemName {
+            font-size: clamp(14px, 2vw, 18px);
+            color: #44ff44;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #itemDescription {
+            color: #ccc;
+            margin-bottom: 15px;
+        }
+
+        #useBtn {
+            width: 100%;
+            padding: clamp(10px, 1.5vw, 12px);
+            font-size: clamp(14px, 2vw, 16px);
+            background: linear-gradient(135deg, #44ff44, #228B22);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+
+        #useBtn:hover {
+            background: linear-gradient(135deg, #66ff66, #32cd32);
+            transform: translateY(-2px);
+        }
+
+        #useBtn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== 弹窗与提示系统 ===== */
+        #warningModal {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(139, 0, 0, 0.95);
+            border: 3px solid #ff0000;
+            padding: clamp(15px, 2vw, 20px) clamp(25px, 3vw, 40px);
+            border-radius: 10px;
+            font-size: clamp(18px, 3vw, 24px);
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+            display: none;
+            z-index: 1000;
+            animation: pulse 1s infinite;
+            max-width: 90vw;
+            text-align: center;
+        }
+
+        /* 谜题弹窗 */
+        #puzzleModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        #puzzleContent {
+            background: rgba(20,20,20,0.98);
+            border: 3px solid #ff4444;
+            border-radius: 20px;
+            padding: clamp(20px, 3vw, 40px);
+            max-width: min(600px, 95vw);
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: center;
+        }
+
+        #puzzleTitle {
+            font-size: clamp(20px, 3vw, 28px);
+            color: #ff4444;
+            margin-bottom: clamp(15px, 2vw, 20px);
+        }
+
+        #codeInput {
+            display: flex;
+            gap: clamp(8px, 1.5vw, 15px);
+            justify-content: center;
+            margin: clamp(15px, 2vw, 30px) 0;
+            flex-wrap: wrap;
+        }
+
+        .codeDigit {
+            width: clamp(50px, 8vw, 70px);
+            height: clamp(60px, 10vw, 90px);
+            font-size: clamp(24px, 4vw, 42px);
+            text-align: center;
+            background: #333;
+            border: 3px solid #666;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        .codeDigit:focus {
+            border-color: #ff4444;
+            outline: none;
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+        }
+
+        .puzzleBtn {
+            padding: clamp(10px, 1.5vw, 12px) clamp(20px, 3vw, 30px);
+            font-size: clamp(14px, 2vw, 18px);
+            margin: 5px;
+            background: linear-gradient(135deg, #8b0000, #4d0000);
+            border: 2px solid #ff4444;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+
+        .puzzleBtn:hover {
+            background: linear-gradient(135deg, #ff0000, #8b0000);
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+        }
+
+        /* 游戏结束画面 */
+        #gameOverScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.98);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+        }
+
+        #gameOverContent {
+            background: rgba(20,20,20,0.95);
+            border: 3px solid #ff4444;
+            border-radius: 20px;
+            padding: clamp(20px, 3vw, 40px);
+            text-align: center;
+            max-width: min(700px, 95vw);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        #gameOverTitle {
+            font-size: clamp(32px, 5vw, 48px);
+            margin-bottom: clamp(15px, 2vw, 20px);
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        #gameOverText {
+            font-size: clamp(16px, 2vw, 20px);
+            line-height: 1.6;
+            margin-bottom: clamp(20px, 3vw, 30px);
+            color: #ccc;
+        }
+
+        .restartBtn {
+            padding: clamp(12px, 2vw, 15px) clamp(30px, 4vw, 40px);
+            font-size: clamp(16px, 2.5vw, 20px);
+            background: linear-gradient(135deg, #ff4444, #8b0000);
+            border: 2px solid #ff6666;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+
+        .restartBtn:hover {
+            background: linear-gradient(135deg, #ff6666, #ff0000);
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.7);
+            transform: scale(1.05);
+        }
+
+        /* 开发者模式弹窗 */
+        #devModeModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.98);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+
+        #devModeContent {
+            background: rgba(0,20,0,0.95);
+            border: 3px solid #00ff00;
+            border-radius: 20px;
+            padding: clamp(20px, 3vw, 40px);
+            max-width: min(800px, 95vw);
+            max-height: 90vh;
+            overflow-y: auto;
+            color: #00ff00;
+        }
+
+        #devModeTitle {
+            font-size: clamp(24px, 3.5vw, 32px);
+            color: #00ff00;
+            margin-bottom: clamp(20px, 3vw, 30px);
+            text-align: center;
+        }
+
+        .devSection {
+            margin-bottom: clamp(15px, 2vw, 25px);
+            padding: clamp(10px, 1.5vw, 15px);
+            background: rgba(0,255,0,0.1);
+            border-radius: 10px;
+            border: 1px solid #00ff00;
+        }
+
+        .devSectionTitle {
+            font-size: clamp(16px, 2.5vw, 20px);
+            margin-bottom: clamp(10px, 1.5vw, 15px);
+        }
+
+        .devControl {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: clamp(8px, 1vw, 10px) 0;
+            flex-wrap: wrap;
+        }
+
+        .devLabel {
+            width: min(100px, 20vw);
+            font-size: clamp(12px, 1.5vw, 14px);
+        }
+
+        .devInput {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px;
+            background: #222;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            color: #00ff00;
+            font-size: 14px;
+        }
+
+        .devBtn {
+            padding: 8px 15px;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 14px;
+            touch-action: manipulation;
+        }
+
+        .devBtn:hover {
+            background: #66ff66;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        /* 密码输入弹窗 */
+        #passwordModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 4500;
+            padding: 20px;
+        }
+
+        #passwordContent {
+            background: rgba(20,20,20,0.98);
+            border: 3px solid #ffaa00;
+            border-radius: 20px;
+            padding: clamp(20px, 3vw, 40px);
+            max-width: min(400px, 95vw);
+            width: 100%;
+        }
+
+        #passwordTitle {
+            font-size: clamp(20px, 3vw, 28px);
+            color: #ffaa00;
+            margin-bottom: clamp(15px, 2vw, 20px);
+        }
+
+        #passwordInput {
+            width: 100%;
+            padding: 15px;
+            font-size: clamp(18px, 2.5vw, 24px);
+            background: #333;
+            border: 2px solid #666;
+            border-radius: 10px;
+            color: #fff;
+            text-align: center;
+            margin: clamp(15px, 2vw, 20px) 0;
+        }
+
+        .passwordBtn {
+            padding: clamp(10px, 1.5vw, 12px) clamp(20px, 3vw, 30px);
+            font-size: clamp(14px, 2vw, 18px);
+            margin: 5px;
+            touch-action: manipulation;
+        }
+
+        /* 剧情推进指示器 */
+        #storyProgressIndicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(12px, 1.5vw, 14px);
+            color: #888;
+            font-style: italic;
+            display: none;
+            text-align: center;
+        }
+
+        /* 性能优化：减少动画 */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* 高DPI屏幕优化 */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            body {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+        }
+
+        /* ===== 触摸反馈增强 ===== */
+        .touch-feedback {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        /* 防止双击缩放 */
+        @media screen and (max-width: 768px) {
+            html {
+                touch-action: manipulation;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载画面 -->
+    <div id="loadingScreen">
+        <div id="loadingText">正在初始化末日世界...</div>
+        <div class="loadingBar">
+            <div class="loadingFill"></div>
+        </div>
+    </div>
+
+    <!-- 密码输入弹窗 -->
+    <div id="passwordModal">
+        <div id="passwordContent">
+            <h3 id="passwordTitle">🔓 开发者模式</h3>
+            <p style="margin-bottom: 20px; color: #ccc;">请输入开发者密码以启用调试功能</p>
+            <input type="password" id="passwordInput" placeholder="输入密码" maxlength="10">
+            <div style="margin-top: 20px;">
+                <button class="passwordBtn" onclick="checkPassword()">确认</button>
+                <button class="passwordBtn" onclick="closePasswordModal()">取消</button>
+            </div>
+            <p id="passwordHint" style="margin-top: 15px; font-size: 14px; color: #ff4444;"></p>
+        </div>
+    </div>
+
+    <!-- 开发者模式控制台 -->
+    <div id="devModeModal">
+        <div id="devModeContent">
+            <h2 id="devModeTitle">🛠️ 开发者控制台</h2>
+            
+            <div class="devSection">
+                <div class="devSectionTitle">状态调整</div>
+                <div class="devControl">
+                    <span class="devLabel">生命值:</span>
+                    <input type="number" class="devInput" id="devHealth" min="0" max="100" value="100">
+                    <button class="devBtn" onclick="devSetHealth()">设置</button>
+                </div>
+                <div class="devControl">
+                    <span class="devLabel">饥饿值:</span>
+                    <input type="number" class="devInput" id="devHunger" min="0" max="100" value="80">
+                    <button class="devBtn" onclick="devSetHunger()">设置</button>
+                </div>
+                <div class="devControl">
+                    <span class="devLabel">理智值:</span>
+                    <input type="number" class="devInput" id="devSanity" min="0" max="100" value="90">
+                    <button class="devBtn" onclick="devSetSanity()">设置</button>
+                </div>
+            </div>
+
+            <div class="devSection">
+                <div class="devSectionTitle">物品管理</div>
+                <div class="devControl">
+                    <select class="devInput" id="devItemSelect">
+                        <option value="">选择物品...</option>
+                        <option value="key">🗝️ 生锈的钥匙</option>
+                        <option value="map">🗺️ 城市地图</option>
+                        <option value="food">🥫 罐头食品</option>
+                        <option value="medkit">🏥 医疗包</option>
+                        <option value="笔记">📓 研究员笔记</option>
+                        <option value="antidote">💉 抗病毒血清</option>
+                        <option value="radio">📻 收音机</option>
+                        <option value="flashlight">🔦 手电筒</option>
+                    </select>
+                    <button class="devBtn" onclick="devAddItem()">添加</button>
+                </div>
+                <div class="devControl">
+                    <button class="devBtn" style="width: 100%;" onclick="devClearInventory()">清空背包</button>
+                </div>
+            </div>
+
+            <div class="devSection">
+                <div class="devSectionTitle">场景跳转</div>
+                <div class="devControl">
+                    <select class="devInput" id="devSceneSelect">
+                        <option value="shelter">🏠 避难所</option>
+                        <option value="ruins">🏚️ 城市废墟</option>
+                        <option value="tunnel">🚇 地铁隧道</option>
+                        <option value="lab">🔬 实验室</option>
+                    </select>
+                    <button class="devBtn" onclick="devJumpScene()">跳转</button>
+                </div>
+            </div>
+
+            <div class="devSection">
+                <div class="devSectionTitle">标志设置</div>
+                <div class="devControl" style="flex-wrap: wrap; gap: 10px;">
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="devFlagKey" onchange="devSetFlag('hasKey', this.checked)">
+                        <span style="font-size: 14px;">有钥匙</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="devFlagMap" onchange="devSetFlag('hasMap', this.checked)">
+                        <span style="font-size: 14px;">有地图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="devFlagAntidote" onchange="devSetFlag('hasAntidote', this.checked)">
+                        <span style="font-size: 14px;">有血清</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="devFlagTruth" onchange="devSetFlag('knowsTruth', this.checked)">
+                        <span style="font-size: 14px;">知道真相</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="devFlagDoor" onchange="devSetFlag('doorUnlocked', this.checked)">
+                        <span style="font-size: 14px;">保险箱开启</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="devSection">
+                <div class="devSectionTitle">其他</div>
+                <div class="devControl">
+                    <button class="devBtn" style="width: 100%; background: #ff4444;" onclick="devTriggerEnding()">立即触发结局</button>
+                </div>
+                <div class="devControl">
+                    <button class="devBtn" style="width: 100%;" onclick="devExportState()">导出状态</button>
+                </div>
+            </div>
+
+            <div class="devStatus" id="devStatus">
+                等待操作...
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="devBtn" style="background: #ff4444; color: #fff;" onclick="closeDevMode()">关闭控制台</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主容器 -->
+    <div id="container" style="display: none;">
+        <!-- 状态栏 -->
+        <header id="statusBar">
+            <div id="devModeIndicator">DEV MODE</div>
+            <h1 id="title" onclick="attemptDevAccess()">丧尸逃生</h1>
+            <div class="stats">
+                <div class="statItem">
+                    <span class="statLabel">生命值</span>
+                    <div class="statBar">
+                        <div id="healthFill" class="statFill" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="statItem">
+                    <span class="statLabel">饥饿值</span>
+                    <div class="statBar">
+                        <div id="hungerFill" class="statFill" style="width: 80%"></div>
+                    </div>
+                </div>
+                <div class="statItem">
+                    <span class="statLabel">理智值</span>
+                    <div class="statBar">
+                        <div id="sanityFill" class="statFill" style="width: 90%"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="timeDisplay">第1085天 14:30</div>
+        </header>
+
+        <!-- 三模块主内容区 -->
+        <div id="mainContent">
+            <!-- 故事模块 -->
+            <div id="storyModule">
+                <h2 id="storyTitle">地下避难所</h2>
+                <div id="storyContent"></div>
+                <div id="storyProgressIndicator">等待玩家选择...</div>
+            </div>
+
+            <!-- 选择模块 -->
+            <div id="choiceModule">
+                <h2 id="choiceTitle">行动选择</h2>
+                <div id="choiceList">等待剧情加载...</div>
+            </div>
+
+            <!-- 背包模块 -->
+            <div id="inventoryModule">
+                <h2 id="inventoryTitle">装备背包</h2>
+                <div id="inventoryGrid"></div>
+                <div id="inventoryInfo">
+                    <div id="itemDetails">
+                        <div id="itemName">选择物品查看详情</div>
+                        <div id="itemDescription">点击上方物品或使用物品</div>
+                        <button id="useBtn" disabled>使用物品</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 警告提示 -->
+        <div id="warningModal">⚠️ 丧尸接近中！</div>
+
+        <!-- 谜题弹窗 -->
+        <div id="puzzleModal">
+            <div id="puzzleContent">
+                <h3 id="puzzleTitle">保险箱密码</h3>
+                <p style="margin-bottom: 20px; color: #ccc; font-size: 16px;">
+                    提示：避难所建造的月份 + 末日爆发的日期
+                </p>
+                <div id="codeInput">
+                    <input type="text" class="codeDigit" maxlength="1" data-pos="0">
+                    <input type="text" class="codeDigit" maxlength="1" data-pos="1">
+                    <input type="text" class="codeDigit" maxlength="1" data-pos="2">
+                    <input type="text" class="codeDigit" maxlength="1" data-pos="3">
+                </div>
+                <button class="puzzleBtn" onclick="checkPuzzleCode()">确认</button>
+                <button class="puzzleBtn" onclick="closePuzzle()">取消</button>
+            </div>
+        </div>
+
+        <!-- 游戏结束画面 -->
+        <div id="gameOverScreen">
+            <div id="gameOverContent">
+                <h1 id="gameOverTitle">任务完成！</h1>
+                <div id="gameOverText"></div>
+                <button class="restartBtn" onclick="restartGame()">重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 游戏状态管理 - 优化内存与性能 =====
+        const gameState = {
+            currentScene: 'shelter',
+            currentTitle: '地下避难所',
+            health: 100,
+            hunger: 80,
+            sanity: 90,
+            inventory: {},
+            storyProgress: 0,
+            day: 1085,
+            time: "14:30",
+            flags: {
+                hasKey: false,
+                hasMap: false,
+                hasAntidote: false,
+                knowsTruth: false,
+                doorUnlocked: false,
+                flashlightFound: false,
+                jackContacted: false,
+                savedSurvivor: false,
+                virusSample: false
+            },
+            puzzlesSolved: 0,
+            devMode: false,
+            storyQueue: [],
+            isProcessing: false
+        };
+
+        // 物品数据库 - 轻量级实现
+        const itemsDB = {
+            key: { name: '生锈的钥匙', icon: '🗝️', description: '一把锈迹斑斑的保险箱钥匙' },
+            map: { name: '城市地图', icon: '🗺️', description: '标注了安全路线和实验室位置的地图' },
+            food: { name: '罐头食品', icon: '🥫', description: '恢复20点饥饿值，保持体力' },
+            medkit: { name: '医疗包', icon: '🏥', description: '恢复30点生命值，治疗伤势' },
+            笔记: { name: '研究员笔记', icon: '📓', description: 'Ana的日记，记载着病毒爆发的真相' },
+            antidote: { name: '抗病毒血清', icon: '💉', description: '可以治愈感染的原型血清' },
+            radio: { name: '军用对讲机', icon: '📻', description: '接收到神秘信号和坐标' },
+            flashlight: { name: '战术手电筒', icon: '🔦', description: '照亮黑暗的工具' },
+            sample: { name: '病毒样本', icon: '🧪', description: '用于研究的原始病毒样本' }
+        };
+
+        // 故事内容 - 扩展剧情
+        const storyContent = {
+            shelter: {
+                title: "地下避难所",
+                intro: [
+                    "[系统日志] 第1085天，避难所电力系统不稳定...",
+                    "你在昏暗的灯光下醒来。三年前病毒爆发那天，你正在建造这个地下避难所。",
+                    "对讲机传来女声：'这里是C-12安全区，我需要抗原体...'",
+                    "你回答：'我还活着。' 女声激动道：'我是Ana博士，我们在寻找解药。'",
+                    "她告诉你实验室有原型血清，但72小时内必须到达，电力即将耗尽。",
+                    "避难所外传来抓挠声...它们找到你了。"
+                ],
+                choices: [
+                    {
+                        text: "检查防御系统",
+                        action: () => {
+                            queueStory([
+                                { text: "钢铁大门坚固，但门外至少20只丧尸！防御只能坚持48小时。", speaker: "扫描结果", type: "danger" },
+                                { text: "Ana急道：'必须立即出发！我会引导你。'", speaker: "Ana", type: "info" }
+                            ]);
+                            updateStats(0, -5, -15);
+                            gameState.flags.zombieOutside = true;
+                        }
+                    },
+                    {
+                        text: "与Ana规划路线",
+                        action: () => {
+                            queueStory([
+                                { text: "'实验室在地铁隧道尽头。' Ana说，'但疯子Jack在游荡。'", speaker: "Ana", type: "info" },
+                                { text: "男声插入：'谁在说我？我在这待了三年，没人比我更懂废墟！'", speaker: "Jack", type: "warning" },
+                                { text: "Ana警告：'小心Jack，他精神有问题...但他知道近路。'", speaker: "Ana", type: "info" }
+                            ]);
+                            gameState.flags.jackContacted = true;
+                            addInventoryItem('radio');
+                        }
+                    },
+                    {
+                        text: "打开保险箱（需密码）",
+                        condition: () => !gameState.flags.doorUnlocked,
+                        action: () => {
+                            queueStory([
+                                { text: "电子保险箱旁刻着：'末日降临那天，我失去了一切...'", speaker: "观察", type: "info" }
+                            ]);
+                            showPuzzle();
+                        }
+                    },
+                    {
+                        text: "逃离避难所",
+                        condition: () => gameState.flags.knowsTruth || gameState.flags.jackContacted || gameState.flags.doorUnlocked,
+                        action: () => {
+                            queueStory([
+                                { text: "你装备补给，打开大门。外面是废墟城市...", speaker: "系统", type: "warning" }
+                            ]);
+                            setTimeout(() => changeScene('ruins'), 4000);
+                        }
+                    }
+                ]
+            },
+            ruins: {
+                title: "城市废墟",
+                intro: [
+                    "阳光刺眼，你第一次呼吸到外面的空气。废墟如巨大尸体。",
+                    "Ana通过对讲机指示：'向左走，避开尸群。'",
+                    "远处传来枪声，是Jack在猎杀丧尸？还是其他幸存者？"
+                ],
+                choices: [
+                    {
+                        text: "探索废弃超市",
+                        action: () => {
+                            if (Math.random() > 0.4) {
+                                queueStory([
+                                    { text: "你在后仓发现Mia！她躲在冰柜里三天了。", speaker: "发现", type: "success" },
+                                    { text: "Mia虚弱地说：'我知道实验室暗门密码...0423...'", speaker: "Mia", type: "info" },
+                                    { text: "Jack怒道：'别带她！可能被咬了！' Ana说：'这有风险，但我们是人类...'", speaker: "系统", type: "warning" }
+                                ]);
+                                gameState.flags.survivorFound = true;
+                            } else {
+                                queueStory([
+                                    { text: "超市被洗劫一空。突然货架后传来低吼声...", speaker: "危险", type: "danger" },
+                                    { text: "三只丧尸扑向你！一颗子弹精准爆头。", speaker: "系统", type: "warning" },
+                                    { text: "'我叫Jack，你欠我一条命。' 穿迷彩服的男人出现。", speaker: "Jack", type: "info" }
+                                ]);
+                                gameState.flags.jackMet = true;
+                                updateStats(-5, -5, -5);
+                            }
+                        }
+                    },
+                    {
+                        text: "搜寻军用车",
+                        action: () => {
+                            if (!gameState.flags.hasMap && Math.random() > 0.5) {
+                                queueStory([
+                                    { text: "你在悍马里找到城市地图和手电！", speaker: "发现", type: "success" },
+                                    { text: "Jack出现：'那是我的。想要？拿食物换。'", speaker: "Jack", type: "info" },
+                                    { text: "Ana警告：'可能是陷阱，但别激怒他...'", speaker: "Ana", type: "warning" }
+                                ]);
+                                gameState.flags.hasMap = true;
+                                addInventoryItem('map');
+                                addInventoryItem('flashlight');
+                            } else {
+                                queueStory([
+                                    { text: "车辆被炸，只剩残骸。仪表盘上有U盘...", speaker: "发现", type: "info" },
+                                    { text: "U盘里有实验室原始数据！Ana激动：'能帮我们改进血清！'", speaker: "Ana", type: "success" },
+                                    { text: "'数据是我家族的。' Jack阴森地说，'你最好想清楚再动。' 他举起了枪。", speaker: "Jack", type: "danger" }
+                                ]);
+                                gameState.flags.virusSample = true;
+                                addInventoryItem('sample');
+                            }
+                        }
+                    },
+                    {
+                        text: "救Mia去安全点",
+                        condition: () => gameState.flags.survivorFound,
+                        action: () => {
+                            queueStory([
+                                { text: "你救Mia，给她食物。她说：'实验室暗门密码0423。'", speaker: "Mia", type: "success" },
+                                { text: "Jack愤怒：'你会后悔的！带着拖油瓶活不过今晚！'", speaker: "Jack", type: "danger" },
+                                { text: "Ana说：'你做了正确的事。人性比生存更重要。'", speaker: "Ana", type: "info" }
+                            ]);
+                            gameState.flags.savedSurvivor = true;
+                            updateStats(-10, -15, 10);
+                            setTimeout(() => changeScene('tunnel'), 3000);
+                        }
+                    },
+                    {
+                        text: "独自前往隧道",
+                        action: () => {
+                            queueStory([
+                                { text: "你狠下心离开。Mia绝望的眼神难忘，但心软就是死亡。", speaker: "内心", type: "warning" },
+                                { text: "Jack说：'明智的选择。感情用事的人活不长。隧道在200米外。'", speaker: "Jack", type: "info" },
+                                { text: "Ana沉默良久：'我理解，但这代价太大了。'", speaker: "Ana", type: "info" }
+                            ]);
+                            gameState.sanity -= 20;
+                            setTimeout(() => changeScene('tunnel'), 3000);
+                        }
+                    }
+                ]
+            },
+            tunnel: {
+                title: "废弃地铁隧道",
+                intro: [
+                    "黑暗吞噬一切。只有手电能照亮三米。",
+                    "墙上满是血手印。这里曾是丧尸巢穴。",
+                    "Jack说：'小心，这里有我三年前设的陷阱。'"
+                ],
+                choices: [
+                    {
+                        text: "用手电筒前进",
+                        condition: () => hasItem('flashlight'),
+                        action: () => {
+                            queueStory([
+                                { text: "手电照亮前方：'实验室→200m'。", speaker: "发现", type: "info" },
+                                { text: "地面塌陷！你掉进地下空间...", speaker: "危险", type: "danger" },
+                                { text: "'欢迎来到我家。' Jack说，'想要血清？拿样本换。'", speaker: "Jack", type: "warning" }
+                            ]);
+                            if (gameState.flags.virusSample) {
+                                queueStory([
+                                    { text: "你拿出U盘：'数据在这，放我上去！'", speaker: "你", type: "info" },
+                                    { text: "Jack大笑：'聪明。serum在实验室，但那里有更大秘密...'", speaker: "Jack", type: "info" },
+                                    { text: "Ana紧急：'别信！真正的实验室在更深处！'", speaker: "Ana", type: "danger" }
+                                ]);
+                            }
+                        }
+                    },
+                    {
+                        text: "检查墙上涂鸦",
+                        action: () => {
+                            queueStory([
+                                { text: "涂鸦：'实验室不是救人的地方，是地狱。——Dr.Ana'", speaker: "涂鸦", type: "info" },
+                                { text: "Ana沉默：'...那是我写的。我以为创造了希望，其实是打开了潘多拉魔盒。'", speaker: "Ana", type: "warning" },
+                                { text: "'所以血清是谎言？'你质问。Ana答：'血清存在，但代价是...需要活人做载体。'", speaker: "系统", type: "danger" }
+                            ]);
+                            gameState.flags.knowsTruth = true;
+                        }
+                    },
+                    {
+                        text: "用暗门（Mia提示）",
+                        condition: () => gameState.flags.savedSurvivor,
+                        action: () => {
+                            queueStory([
+                                { text: "你输入0423，墙壁打开！秘密通道...", speaker: "成功", type: "success" },
+                                { text: "Mia说：'那是我父亲设计的逃生通道，他是首席工程师。'", speaker: "Mia", type: "info" },
+                                { text: "通道直通实验室核心！但Ana说：'那里有我留下的东西...'", speaker: "Ana", type: "warning" }
+                            ]);
+                            setTimeout(() => changeScene('lab'), 3000);
+                        }
+                    },
+                    {
+                        text: "硬闯到实验室",
+                        action: () => {
+                            queueStory([
+                                { text: "你硬闯。Jack的陷阱触发警报，尸群涌来...", speaker: "危险", type: "danger" },
+                                { text: "Ana远程打开应急门：'快跑！我黑入了系统！'", speaker: "Ana", type: "success" },
+                                { text: "你冲进实验室，Jack尾随：'游戏结束，科学家。血清归我。'", speaker: "Jack", type: "danger" }
+                            ]);
+                            showWarning("⚠️ 尸群袭来！");
+                            updateStats(-25, -10, -20);
+                            setTimeout(() => changeScene('lab'), 2000);
+                        }
+                    }
+                ]
+            },
+            lab: {
+                title: "神秘实验室",
+                intro: [
+                    "实验室核心。培养仓破裂，满地实验记录。",
+                    "Ana颤抖：'我创造了解药，也创造了怪物。病毒是我研发的生物武器...'",
+                    "Jack举枪对准你：'做个选择。把血清给我，或者我送你去见那些被你害死的灵魂。'"
+                ],
+                choices: [
+                    {
+                        text: "阅读Ana的日志",
+                        action: () => {
+                            queueStory([
+                                { text: "日志：'第1079天，我合成了血清。但需要活人抗体。我自愿成为实验体。'", speaker: "Ana的日志", type: "info" },
+                                { text: "'但病毒变异了，血清只能救少数人。我选择了放弃...'", speaker: "日志", type: "danger" },
+                                { text: "Ana哭泣：'我错了...直到听到你的声音，我才明白希望不是数据，是人性。'", speaker: "Ana", type: "warning" }
+                            ]);
+                        }
+                    },
+                    {
+                        text: "与Jack对峙（道德抉择）",
+                        action: () => {
+                            if (gameState.flags.savedSurvivor) {
+                                queueStory([
+                                    { text: "Mia冲进来：'Jack，你还记得我父亲的承诺吗？你会保护我们！'", speaker: "Mia", type: "info" },
+                                    { text: "Jack的手颤抖...他放下枪：'...我这就带你们去安全区。血清...我们平分。'", speaker: "Jack", type: "success" }
+                                ]);
+                            } else {
+                                queueStory([
+                                    { text: "Jack冷笑：'没有累赘，我们可以统治废土！血清给我，或者你死。'", speaker: "Jack", type: "danger" },
+                                    { text: "你面临抉择：信任疯子，还是独自逃离？", speaker: "系统", type: "warning" }
+                                ]);
+                            }
+                        }
+                    },
+                    {
+                        text: "注射血清（需信任Ana）",
+                        condition: () => gameState.flags.knowsTruth && gameState.flags.hasAntidote,
+                        action: () => {
+                            queueStory([
+                                { text: "你拿起血清。Ana说：'等等！需要配合病毒样本激活...快插入U盘！'", speaker: "Ana", type: "info" },
+                                { text: "你照做。培养仓亮起绿灯，血清开始复制！成功了！", speaker: "系统", type: "success" },
+                                { text: "Jack震惊：'你...真的做到了？我错了。' 他跪下了。", speaker: "Jack", type: "info" }
+                            ]);
+                            setTimeout(() => triggerEnding(), 3000);
+                        }
+                    },
+                    {
+                        text: "独自逃离",
+                        action: () => {
+                            queueStory([
+                                { text: "你带着血清冲出实验室，身后传来枪声和惨叫...你逃了。", speaker: "系统", type: "info" },
+                                { text: "但最终，你只能救自己。血清有限，人性在末日里太奢侈...", speaker: "结局", type: "warning" }
+                            ]);
+                            setTimeout(() => triggerEnding(), 2000);
+                        }
+                    }
+                ]
+            }
+        };
+
+        // ===== 核心系统 =====
+
+        // 初始化游戏
+        function initGame() {
+            // 初始化背包格子
+            const inventoryGrid = document.getElementById('inventoryGrid');
+            for (let i = 0; i < 16; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inventorySlot';
+                slot.dataset.index = i;
+                slot.addEventListener('click', () => selectInventoryItem(slot));
+                // 触摸反馈
+                slot.addEventListener('touchstart', createTouchFeedback, { passive: true });
+                inventoryGrid.appendChild(slot);
+            }
+
+            // 隐藏加载画面
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loadingScreen');
+                loadingScreen.classList.add('hidden');
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    document.getElementById('container').style.display = 'flex';
+                }, 500);
+                startStory();
+            }, 2500);
+        }
+
+        // 触摸反馈效果
+        function createTouchFeedback(e) {
+            const touch = e.touches[0];
+            const ripple = document.createElement('div');
+            ripple.className = 'touch-feedback';
+            ripple.style.left = (touch.clientX - 10) + 'px';
+            ripple.style.top = (touch.clientY - 10) + 'px';
+            ripple.style.width = '20px';
+            ripple.style.height = '20px';
+            document.body.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        }
+
+        // 故事队列系统
+        function queueStory(storyItems) {
+            gameState.storyQueue = storyItems;
+            gameState.isProcessing = true;
+            document.getElementById('choiceList').style.display = 'none';
+            updateProgressIndicator(true);
+            
+            processStoryQueue();
+        }
+
+        function processStoryQueue() {
+            if (gameState.storyQueue.length === 0) {
+                gameState.isProcessing = false;
+                document.getElementById('choiceList').style.display = 'flex';
+                updateProgressIndicator(false);
+                setTimeout(() => continueAfterChoice(), 500);
+                return;
+            }
+            
+            const nextItem = gameState.storyQueue.shift();
+            addStoryText(nextItem.text, nextItem.speaker, nextItem.type);
+            
+            if (nextItem.effect) {
+                nextItem.effect();
+            }
+            
+            setTimeout(processStoryQueue, 3000);
+        }
+
+        // 更新进度指示器
+        function updateProgressIndicator(show) {
+            const indicator = document.getElementById('storyProgressIndicator');
+            if (show) {
+                indicator.textContent = "📖 剧情播放中...";
+                indicator.style.display = 'block';
+            } else {
+                indicator.textContent = "✅ 请继续选择...";
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 选择后继续剧情
+        function continueAfterChoice() {
+            updateChoices(gameState.currentScene);
+        }
+
+        // 开始故事
+        function startStory() {
+            const introTexts = storyContent.shelter.intro;
+            let index = 0;
+            
+            const showNext = () => {
+                if (index < introTexts.length) {
+                    addStoryText(introTexts[index], "序章", "info");
+                    index++;
+                    setTimeout(showNext, 4000);
+                } else {
+                    updateChoices('shelter');
+                }
+            };
+            
+            showNext();
+        }
+
+        // 添加故事文本
+        function addStoryText(text, speaker = "", type = "info") {
+            const storyContent = document.getElementById('storyContent');
+            const storyBox = document.createElement('div');
+            storyBox.className = 'dialogueBox';
+            
+            const speakerDiv = document.createElement('div');
+            speakerDiv.className = 'speaker';
+            
+            // 角色颜色区分
+            const speakerColors = {
+                'Ana': '#ff44ff',
+                'Jack': '#44aaff',
+                'Mia': '#88ff88',
+                '系统': '#ffaa44'
+            };
+            
+            speakerDiv.textContent = speaker;
+            if (speakerColors[speaker]) {
+                speakerDiv.style.color = speakerColors[speaker];
+            }
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'storyText';
+            textDiv.textContent = text;
+            
+            storyBox.appendChild(speakerDiv);
+            storyBox.appendChild(textDiv);
+            storyContent.appendChild(storyBox);
+            
+            // 自动滚动
+            storyContent.scrollTop = storyContent.scrollHeight;
+            
+            // 视觉区分
+            if (type === "warning" || type === "danger") {
+                storyBox.style.borderLeftColor = "#ff0000";
+                storyBox.style.background = "rgba(139, 0, 0, 0.3)";
+                storyBox.style.boxShadow = "0 0 15px rgba(255, 0, 0, 0.2)";
+            } else if (type === "success") {
+                storyBox.style.borderLeftColor = "#44ff44";
+                storyBox.style.background = "rgba(68, 139, 0, 0.3)";
+                storyBox.style.boxShadow = "0 0 15px rgba(68, 255, 68, 0.2)";
+            }
+        }
+
+        // 更新选择按钮
+        function updateChoices(sceneName) {
+            if (gameState.isProcessing) return;
+            
+            const choiceList = document.getElementById('choiceList');
+            choiceList.innerHTML = '';
+            
+            if (!storyContent[sceneName] || !storyContent[sceneName].choices) return;
+            
+            storyContent[sceneName].choices.forEach(choice => {
+                if (choice.condition && !choice.condition()) return;
+                
+                const btn = document.createElement('button');
+                btn.className = 'choiceBtn';
+                btn.textContent = choice.text;
+                btn.addEventListener('click', () => {
+                    if (gameState.isProcessing) return;
+                    document.getElementById('storyProgressIndicator').style.display = 'none';
+                    choice.action();
+                });
+                // 触摸反馈
+                btn.addEventListener('touchstart', createTouchFeedback, { passive: true });
+                choiceList.appendChild(btn);
+            });
+            
+            if (choiceList.children.length === 0) {
+                choiceList.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">当前无可用行动</div>';
+            }
+        }
+
+        // 切换场景
+        function changeScene(sceneName) {
+            if (gameState.isProcessing) {
+                setTimeout(() => changeScene(sceneName), 1000);
+                return;
+            }
+            
+            gameState.currentScene = sceneName;
+            gameState.currentTitle = storyContent[sceneName].title;
+            
+            document.getElementById('storyContent').innerHTML = '';
+            document.getElementById('storyTitle').textContent = gameState.currentTitle;
+            
+            const introTexts = storyContent[sceneName].intro;
+            let index = 0;
+            
+            const showNext = () => {
+                if (index < introTexts.length) {
+                    addStoryText(introTexts[index], "场景", "info");
+                    index++;
+                    setTimeout(showNext, 3500);
+                } else {
+                    updateChoices(sceneName);
+                }
+            };
+            
+            showNext();
+        }
+
+        // 背包管理
+        function addInventoryItem(itemKey) {
+            if (!itemsDB[itemKey]) return;
+            
+            const item = itemsDB[itemKey];
+            
+            if (gameState.inventory[itemKey]) {
+                gameState.inventory[itemKey].count++;
+            } else {
+                gameState.inventory[itemKey] = { ...item, count: 1 };
+            }
+            
+            updateInventoryUI();
+            addStoryText(`获得了：${item.name}`, "系统", "success");
+        }
+
+        function hasItem(itemKey) {
+            return gameState.inventory[itemKey] && gameState.inventory[itemKey].count > 0;
+        }
+
+        function removeInventoryItem(itemKey) {
+            if (gameState.inventory[itemKey]) {
+                gameState.inventory[itemKey].count--;
+                if (gameState.inventory[itemKey].count <= 0) {
+                    delete gameState.inventory[itemKey];
+                }
+                updateInventoryUI();
+            }
+        }
+
+        function updateInventoryUI() {
+            const slots = document.querySelectorAll('.inventorySlot');
+            
+            slots.forEach(slot => {
+                slot.classList.remove('hasItem');
+                slot.textContent = '';
+                slot.innerHTML = '';
+                slot.dataset.item = '';
+            });
+            
+            const itemKeys = Object.keys(gameState.inventory);
+            itemKeys.forEach((itemKey, index) => {
+                if (index >= slots.length) return;
+                
+                const item = gameState.inventory[itemKey];
+                const slot = slots[index];
+                
+                slot.classList.add('hasItem');
+                slot.textContent = item.icon;
+                slot.dataset.item = itemKey;
+                
+                if (item.count > 1) {
+                    const countBadge = document.createElement('div');
+                    countBadge.className = 'itemCount';
+                    countBadge.textContent = item.count;
+                    slot.appendChild(countBadge);
+                }
+            });
+        }
+
+        function selectInventoryItem(slot) {
+            const itemKey = slot.dataset.item;
+            if (!itemKey || !gameState.inventory[itemKey]) return;
+            
+            const item = gameState.inventory[itemKey];
+            document.getElementById('itemName').textContent = item.name;
+            document.getElementById('itemDescription').textContent = item.description;
+            
+            const useBtn = document.getElementById('useBtn');
+            useBtn.disabled = false;
+            useBtn.onclick = () => useSelectedItem(itemKey);
+            
+            document.querySelectorAll('.inventorySlot').forEach(s => s.style.borderColor = '#666');
+            slot.style.borderColor = '#44ff44';
+        }
+
+        function useSelectedItem(itemKey) {
+            const item = gameState.inventory[itemKey];
+            
+            const effects = {
+                food: () => { updateStats(0, 20, 0); addStoryText("你吃掉了罐头食品，饥饿感减轻了。", "系统", "success"); },
+                medkit: () => { updateStats(30, 0, 0); addStoryText("你使用了医疗包，伤势明显好转。", "系统", "success"); },
+                flashlight: () => { updateStats(0, 0, 10); addStoryText("手电筒照亮了周围，安心了一些。", "系统", "info"); },
+                笔记: () => { addStoryText("笔记记载病毒真相：军方生物武器实验。", "笔记", "info"); gameState.flags.knowsTruth = true; }
+            };
+            
+            if (effects[itemKey]) {
+                effects[itemKey]();
+                if (itemKey !== 'flashlight' && itemKey !== '笔记') {
+                    removeInventoryItem(itemKey);
+                }
+            }
+            
+            document.getElementById('itemName').textContent = '选择物品查看详情';
+            document.getElementById('itemDescription').textContent = '点击上方物品或使用物品';
+            document.getElementById('useBtn').disabled = true;
+            document.querySelectorAll('.inventorySlot').forEach(s => s.style.borderColor = '#666');
+        }
+
+        // 更新状态
+        function updateStats(healthChange = 0, hungerChange = 0, sanityChange = 0) {
+            gameState.health = Math.max(0, Math.min(100, gameState.health + healthChange));
+            gameState.hunger = Math.max(0, Math.min(100, gameState.hunger + hungerChange));
+            gameState.sanity = Math.max(0, Math.min(100, gameState.sanity + sanityChange));
+            
+            document.getElementById('healthFill').style.width = gameState.health + '%';
+            document.getElementById('hungerFill').style.width = gameState.hunger + '%';
+            document.getElementById('sanityFill').style.width = gameState.sanity + '%';
+            
+            if (gameState.health <= 0) {
+                gameOver(false, "你在末日中陨落了...");
+            } else if (gameState.sanity <= 0) {
+                gameOver(false, "理智崩溃，无法分清现实与幻觉...");
+            }
+        }
+
+        // 显示警告
+        function showWarning(message) {
+            const warning = document.getElementById('warningModal');
+            warning.textContent = message;
+            warning.style.display = 'block';
+            setTimeout(() => warning.style.display = 'none', 3000);
+        }
+
+        // 谜题系统
+        function showPuzzle() {
+            document.getElementById('puzzleModal').style.display = 'flex';
+            const inputs = document.querySelectorAll('.codeDigit');
+            inputs.forEach(input => input.value = '');
+            inputs[0].focus();
+            
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    if (e.target.value && index < 3) {
+                        inputs[index + 1].focus();
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+                // 触摸反馈
+                input.addEventListener('touchstart', createTouchFeedback, { passive: true });
+            });
+        }
+
+        function closePuzzle() {
+            document.getElementById('puzzleModal').style.display = 'none';
+            setTimeout(() => continueAfterChoice(), 500);
+        }
+
+        function checkPuzzleCode() {
+            const digits = Array.from(document.querySelectorAll('.codeDigit'));
+            const code = digits.map(input => input.value).join('');
+            
+            if (code === '0423') {
+                gameState.flags.doorUnlocked = true;
+                gameState.puzzlesSolved++;
+                queueStory([
+                    { text: "保险箱打开！里面有手电、食物和Ana的日记！", speaker: "成功", type: "success" }
+                ]);
+                addInventoryItem('flashlight');
+                addInventoryItem('food');
+                updateStats(0, 10, 10);
+                closePuzzle();
+                return true;
+            } else {
+                queueStory([
+                    { text: "密码错误！警报声响起！", speaker: "错误", type: "danger" }
+                ]);
+                digits.forEach(input => {
+                    input.value = '';
+                    input.style.borderColor = '#ff0000';
+                    setTimeout(() => input.style.borderColor = '#666', 500);
+                });
+                inputs[0].focus();
+                updateStats(0, 0, -10);
+                return false;
+            }
+        }
+
+        // 触发结局
+        function triggerEnding() {
+            setTimeout(() => {
+                const hasAntidote = gameState.flags.hasAntidote;
+                const knowsTruth = gameState.flags.knowsTruth;
+                const savedSurvivor = gameState.flags.savedSurvivor;
+                const health = gameState.health;
+                const puzzlesSolved = gameState.puzzlesSolved;
+                
+                // 完美人道主义结局
+                if (hasAntidote && savedSurvivor && puzzlesSolved >= 1 && health > 60) {
+                    gameOver(true, 
+                        "你救Mia，带血清回到安全区。Ana用数据改进血清，可以大规模生产。\n\n" +
+                        "你证明了末日中人性不灭。Mia成为研究员，Jack加入防御队。\n\n" +
+                        "【完美人道结局】\n解谜: 1/1 | 救人: ✓ | 血清: ✓ | 真相: ✓"
+                    );
+                }
+                // 真相结局
+                else if (hasAntidote && knowsTruth && puzzlesSolved >= 1) {
+                    gameOver(true,
+                        "你揭露军方实验真相，带改良血清回安全区。Ana公开数据，世界重建。\n\n" +
+                        "虽然代价惨重，但人类从错误中学习。你成为新世界的见证人。\n\n" +
+                        "【真相结局】\n解谜: 1/1 | 血清: ✓ | 真相: ✓ | 道德: 幸存"
+                    );
+                }
+                // 生存结局
+                else if (hasAntidote && health > 50) {
+                    gameOver(true,
+                        "你到达安全区，虽放弃Mia和真相，但至少为人类带回抗原体。\n\n" +
+                        "你活了下来，但内心永远无法平静。在末日，生存本身就沉重。\n\n" +
+                        "【生存结局】\n解谜: 0/1 | 救人: ✗ | 血清: ✓ | 代价: 人性"
+                    );
+                }
+                // 遗憾结局
+                else {
+                    gameOver(false,
+                        "你没找到血清，或放弃太多。虽有对讲机里的希望，但没实体。\n\n" +
+                        "末日继续，人类的故事或许真该结束了。\n\n" +
+                        "【遗憾结局】\n解谜: 0/1 | 血清: ✗ | 真相: ✗ | 结果: 灭亡"
+                    );
+                }
+            }, 2000);
+        }
+
+        // 游戏结束
+        function gameOver(success, message = "") {
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const gameOverTitle = document.getElementById('gameOverTitle');
+            const gameOverText = document.getElementById('gameOverText');
+            
+            gameOverScreen.style.display = 'flex';
+            
+            if (success) {
+                gameOverTitle.textContent = '任务完成！';
+                gameOverTitle.style.color = '#44ff44';
+            } else {
+                gameOverTitle.textContent = '任务失败';
+                gameOverTitle.style.color = '#ff4444';
+            }
+            
+            gameOverText.textContent = message;
+            
+            const stats = document.createElement('div');
+            stats.style.marginTop = '20px';
+            stats.style.padding = '15px';
+            stats.style.background = 'rgba(255,255,255,0.1)';
+            stats.style.borderRadius = '10px';
+            stats.style.textAlign = 'left';
+            stats.style.maxHeight = '200px';
+            stats.style.overflowY = 'auto';
+            
+            const itemsCollected = Object.keys(gameState.inventory).length;
+            const healthPercent = gameState.health;
+            const sanityPercent = gameState.sanity;
+            
+            stats.innerHTML = `
+                <p style="margin: 5px 0;"><strong>📊 最终统计：</strong></p>
+                <p style="margin: 5px 0;">✅ 解谜完成: ${gameState.puzzlesSolved}/1</p>
+                <p style="margin: 5px 0;">🎒 物品收集: ${itemsCollected}/8</p>
+                <p style="margin: 5px 0;">❤️ 剩余生命: ${healthPercent}%</p>
+                <p style="margin: 5px 0;">🧠 理智值: ${sanityPercent}%</p>
+                <p style="margin: 5px 0;">📅 生存天数: ${gameState.day}天</p>
+                <p style="margin: 5px 0;">👥 救助幸存者: ${gameState.flags.savedSurvivor ? '是' : '否'}</p>
+                <p style="margin: 5px 0;">🔍 揭露真相: ${gameState.flags.knowsTruth ? '是' : '否'}</p>
+            `;
+            gameOverText.appendChild(stats);
+        }
+
+        // 重新开始
+        function restartGame() {
+            location.reload();
+        }
+
+        // 时间推进
+        function advanceTime(hours) {
+            const [h, m] = gameState.time.split(':').map(Number);
+            let newH = h + hours;
+            
+            if (newH >= 24) {
+                newH -= 24;
+                gameState.day++;
+            }
+            
+            gameState.time = `${String(newH).padStart(2, '0')}:${m}`;
+            document.getElementById('timeDisplay').textContent = `第${gameState.day}天 ${gameState.time}`;
+        }
+
+        // 定期事件系统
+        let lastTimeUpdate = Date.now();
+        function gameLoop() {
+            const now = Date.now();
+            
+            if (now - lastTimeUpdate > 10000) { // 每10秒
+                if (gameState.health > 0) {
+                    advanceTime(1);
+                    updateStats(0, -3, -1);
+                    
+                    if (Math.random() < 0.15 && gameState.currentScene !== 'shelter') {
+                        showWarning("⚠️ 丧尸在附近游荡！");
+                        updateStats(-5, -2, -5);
+                    }
+                    
+                    gameState.storyProgress += 0.5;
+                }
+                lastTimeUpdate = now;
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==================== 开发者模式功能 ====================
+
+        let devClickCount = 0;
+        let devClickTimer = null;
+
+        function attemptDevAccess() {
+            if (gameState.devMode) return;
+            
+            devClickCount++;
+            
+            if (devClickTimer) clearTimeout(devClickTimer);
+            
+            devClickTimer = setTimeout(() => {
+                devClickCount = 0;
+            }, 3000);
+            
+            if (devClickCount >= 5) {
+                devClickCount = 0;
+                showPasswordModal();
+            }
+        }
+
+        function showPasswordModal() {
+            document.getElementById('passwordModal').style.display = 'flex';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordHint').textContent = '';
+            document.getElementById('passwordInput').focus();
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            if (input === '32512') {
+                gameState.devMode = true;
+                document.getElementById('devModeIndicator').style.display = 'block';
+                closePasswordModal();
+                showDevMode();
+                
+                // 添加键盘快捷键提示
+                addStoryText("开发者模式已激活！按F1快速打开控制台。", "系统", "success");
+            } else {
+                document.getElementById('passwordHint').textContent = '密码错误！请重试。';
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
+
+        function showDevMode() {
+            document.getElementById('devModeModal').style.display = 'flex';
+            updateDevStatus();
+        }
+
+        function closeDevMode() {
+            document.getElementById('devModeModal').style.display = 'none';
+        }
+
+        function devSetHealth() {
+            const value = parseInt(document.getElementById('devHealth').value);
+            gameState.health = Math.max(0, Math.min(100, value));
+            updateStats(0, 0, 0);
+            updateDevStatus('生命值已设置为: ' + gameState.health);
+        }
+
+        function devSetHunger() {
+            const value = parseInt(document.getElementById('devHunger').value);
+            gameState.hunger = Math.max(0, Math.min(100, value));
+            updateStats(0, 0, 0);
+            updateDevStatus('饥饿值已设置为: ' + gameState.hunger);
+        }
+
+        function devSetSanity() {
+            const value = parseInt(document.getElementById('devSanity').value);
+            gameState.sanity = Math.max(0, Math.min(100, value));
+            updateStats(0, 0, 0);
+            updateDevStatus('理智值已设置为: ' + gameState.sanity);
+        }
+
+        function devAddItem() {
+            const itemKey = document.getElementById('devItemSelect').value;
+            if (!itemKey) {
+                updateDevStatus('⚠️ 请先选择物品！');
+                return;
+            }
+            
+            addInventoryItem(itemKey);
+            updateDevStatus('已添加物品: ' + itemsDB[itemKey].name);
+        }
+
+        function devClearInventory() {
+            gameState.inventory = {};
+            updateInventoryUI();
+            updateDevStatus('✅ 背包已清空！');
+        }
+
+        function devJumpScene() {
+            const sceneName = document.getElementById('devSceneSelect').value;
+            closeDevMode();
+            changeScene(sceneName);
+            updateDevStatus('✅ 已跳转到: ' + storyContent[sceneName].title);
+        }
+
+        function devSetFlag(flagName, value) {
+            gameState.flags[flagName] = value;
+            updateDevStatus(`✅ 标志 ${flagName} 设置为: ${value}`);
+        }
+
+        function devTriggerEnding() {
+            closeDevMode();
+            triggerEnding();
+        }
+
+        function devExportState() {
+            const stateJson = JSON.stringify(gameState, null, 2);
+            console.log('===== 游戏状态导出 =====');
+            console.log('当前时间:', new Date().toLocaleString());
+            console.log('浏览器信息:', navigator.userAgent);
+            console.log(stateJson);
+            updateDevStatus('✅ 游戏状态已导出到控制台！');
+        }
+
+        function updateDevStatus(message = '') {
+            const statusDiv = document.getElementById('devStatus');
+            const timestamp = new Date().toLocaleTimeString();
+            const activeFlags = Object.entries(gameState.flags).filter(([k,v]) => v).length;
+            const totalFlags = Object.keys(gameState.flags).length;
+            
+            statusDiv.innerHTML = `
+                <div style="margin-bottom: 10px; font-weight: bold;">📊 当前状态 (${timestamp})</div>
+                <div>🎮 场景: ${gameState.currentTitle}</div>
+                <div>❤️ 生命: ${gameState.health} | 🍖 饥饿: ${gameState.hunger} | 🧠 理智: ${gameState.sanity}</div>
+                <div>🎒 背包物品: ${Object.keys(gameState.inventory).length}/8</div>
+                <div>📈 进度: ${Math.floor(gameState.storyProgress)}%</div>
+                <div>🚩 标志: ${activeFlags}/${totalFlags}</div>
+                <div>💻 平台: ${getPlatformInfo()}</div>
+                ${message ? `<div style="margin-top: 10px; color: #66ff66;">📝 ${message}</div>` : ''}
+            `;
+        }
+
+        // 获取平台信息
+        function getPlatformInfo() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Android')) return 'Android';
+            if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) return 'iOS';
+            if (ua.includes('Windows')) return 'Windows';
+            if (ua.includes('Mac')) return 'macOS';
+            if (ua.includes('Linux')) return 'Linux';
+            return 'Unknown';
+        }
+
+        // 键盘快捷键（开发者模式）
+        document.addEventListener('keydown', (e) => {
+            if (!gameState.devMode) return;
+            
+            if (e.key === 'Escape') {
+                if (document.getElementById('devModeModal').style.display === 'flex') {
+                    closeDevMode();
+                }
+            } else if (e.key === 'F1') {
+                e.preventDefault();
+                showDevMode();
+            }
+        });
+
+        // 全局点击事件处理（性能优化）
+        let lastClickTime = 0;
+        document.addEventListener('click', (e) => {
+            const now = Date.now();
+            if (now - lastClickTime < 100) { // 防止快速连点
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            lastClickTime = now;
+        }, true);
+
+        // 启动游戏
+        window.addEventListener('load', () => {
+            initGame();
+            gameLoop(); // 启动游戏循环
+        });
+
+        // 页面可见性API（支持后台暂停）
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // 页面隐藏时暂停游戏逻辑
+                lastTimeUpdate = Date.now() + 1000000; // 设置一个很大的值
+            } else {
+                // 页面显示时恢复
+                lastTimeUpdate = Date.now();
+            }
+        });
+    </script>
+</body>
+</html>
